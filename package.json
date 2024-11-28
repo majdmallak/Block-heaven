@@ -1,0 +1,19 @@
+{
+  "dependencies": {
+    "babylonjs": "^7.36.0",
+    "simplex-noise": "^4.0.3"
+  },
+  "name": "babylonjsdreamland2025",
+  "version": "1.0.0",
+  "main": "index.js",
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  },
+  "scripts": {
+    "start": "http-server ./ -c-1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": ""
+}
