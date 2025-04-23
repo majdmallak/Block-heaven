@@ -6,50 +6,60 @@ class PlayerAnimator {
         this.skeleton = skeleton;
         this.animations = {};
         this.currentAnimation = null;
-        this.setupAnimations();
+
+        this.initializeAnimations();
     }
 
-    setupAnimations() {
-        // Get all available animations and log them
-        const animationGroups = this.scene.animationGroups;
-        console.log("Available animation groups:", animationGroups);
-    
-        // Store animations with exact names
-        this.animations = {
-            idle: animationGroups.find(group => group.name === 'idle'),
-            walking: animationGroups.find(group => group.name === 'walking')
-        };
+    initializeAnimations() {
+        // Assuming animation group names match the provided list
+        this.animations['idle'] = this.scene.getAnimationGroupByName('idle');
+        this.animations['walking'] = this.scene.getAnimationGroupByName('walking');
+        this.animations['walking_back'] = this.scene.getAnimationGroupByName('walking_back');
+        this.animations['left_strafe_walking'] = this.scene.getAnimationGroupByName('left_strafe_walking');
+        this.animations['right_strafe_walking'] = this.scene.getAnimationGroupByName('right_strafe_walking');
+        this.animations['jump'] = this.scene.getAnimationGroupByName('jump'); // Keep for later
+        // Add others if needed, e.g., t_pose
+        this.animations['t_pose'] = this.scene.getAnimationGroupByName('t_pose');
 
         // Stop all animations initially
-        animationGroups.forEach(group => {
-            group.stop();
-            group.loopAnimation = true; // Make sure animations loop
-        });
+        this.scene.animationGroups.forEach(group => group.stop());
+
+        // Start with idle animation
+        this.setAnimation('idle');
     }
 
-    setAnimation(animationName) {
-        if (!this.animations[animationName]) {
-            console.warn(`Animation ${animationName} not found`);
+    setAnimation(name) {
+        const newAnimation = this.animations[name];
+
+        if (!newAnimation) {
+            console.warn(`Animation "${name}" not found.`);
+            // Fallback to idle if requested animation doesn't exist
+            if (this.currentAnimation !== this.animations['idle']) {
+                if (this.currentAnimation) {
+                    this.currentAnimation.stop();
+                }
+                this.currentAnimation = this.animations['idle'];
+                if (this.currentAnimation) {
+                    this.currentAnimation.start(true, 1.0, this.currentAnimation.from, this.currentAnimation.to, false);
+                }
+            }
             return;
         }
 
-        // If same animation is already playing, don't restart it
-        if (this.currentAnimation === this.animations[animationName]) {
+        if (this.currentAnimation === newAnimation) {
+            // Animation is already playing
             return;
         }
 
-        // Stop current animation if any
+        // Stop the current animation
         if (this.currentAnimation) {
             this.currentAnimation.stop();
         }
 
         // Start the new animation
-        this.animations[animationName].start(true, 1.0, 
-            this.animations[animationName].from, 
-            this.animations[animationName].to, 
-            false);
-        
-        this.currentAnimation = this.animations[animationName];
+        this.currentAnimation = newAnimation;
+        // Ensure the animation loops (true parameter)
+        this.currentAnimation.start(true, 1.0, this.currentAnimation.from, this.currentAnimation.to, false);
     }
 }
 

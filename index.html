@@ -8,10 +8,52 @@
     <link rel="icon" href="assets/icons/favicon.ico">
     <script src="https://cdn.babylonjs.com/babylon.js"></script>
     <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
-    <script src="https://cdn.babylonjs.com/loaders/babylon.fbxLoader.min.js"></script>
+    <!-- Ensure GUI is loaded -->
+    <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script> 
+    <script src="https://cdn.babylonjs.com/proceduralTexturesLibrary/babylonjs.proceduralTextures.min.js"></script>
 </head>
 <body>
-    <canvas id="renderCanvas"></canvas>
+    <!-- Home Page -->
+    <div id="homePage">
+        <h1>Welcome to Dreamland 2025</h1>
+        <button id="playGameBtn">Play Game</button>
+    </div>
+
+    <!-- Loading Screen -->
+    <div id="loadingScreen" style="display: none;">
+        <h1>Loading...</h1>
+    </div>
+
+    <canvas id="renderCanvas" style="display: none;"></canvas>
+    
+    <!-- Top-Right Menu Overlay -->
+    <div id="menu">
+        <!-- Ensure this button ID doesn't conflict if you keep the winning message div -->
+        <button id="restartBtn">Restart Game</button> 
+        <button id="unstuckBtn">Unstuck</button>
+    </div>
+
+    <!-- Riddle Popup (Still Used) -->
+    <div id="riddlePopup" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: rgba(0, 0, 0, 0.8); color: white; padding: 20px; border-radius: 10px; z-index: 1000;">
+        <h2 id="riddleQuestion"></h2>
+        <input type="text" id="riddleAnswer" placeholder="Votre réponse ici..." style="color: black;">
+        <button id="submitAnswer" style="color: white; background-color: green; padding: 5px 10px; border: none; border-radius: 5px; cursor: pointer;">Valider</button>
+        <p id="feedbackText"></p>
+        <button id="closePopup" style="color: white; background-color: grey; padding: 5px 10px; border: none; border-radius: 5px; cursor: pointer;">Quitter</button>
+    </div>
+
+    <!-- Winning Message (Can be removed) -->
+    <!-- <div id="winningMessage" style="display: none;">
+        <h1>You Won!</h1>
+        <button id="restartGameBtn">Play Again</button> 
+    </div> -->
+
+    <!-- Game Over Message (Can be removed) -->
+    <!-- <div id="gameOverMessage" style="display: none;">
+        <h1>Game Over!</h1>
+        <button id="tryAgainBtn">Try Again</button>
+    </div> -->
+    
     <script type="module" src="src/js/main.js"></script>
 </body>
 </html>
