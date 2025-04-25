@@ -130,41 +130,7 @@ function changeMainGroundTexture() {
 
 // Initialisation principale du jeu (GUI, personnage, logique)
 async function initGame() {
-    // --- Affichage du score ---
-    scorePlane = BABYLON.MeshBuilder.CreatePlane("scorePlane", {width:4, height:1}, scene);
-    scorePlane.position = new BABYLON.Vector3(0, 2.5, 6);
-    scorePlane.rotation.y = Math.PI;
-    scorePlane.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
-    const scoreGUI = BABYLON.GUI.AdvancedDynamicTexture.CreateForMesh(scorePlane);
-    scoreTextControl = new BABYLON.GUI.TextBlock("scoreText", `Correct Answers: 0/${totalRiddles}`);
-    scoreTextControl.color = "red";
-    scoreTextControl.fontSize = 85;
-    scoreTextControl.background = "white";
-    scoreGUI.addControl(scoreTextControl);
-
-    // --- Bouton « Rejouer » masqué ---
-    playAgainPlane = BABYLON.MeshBuilder.CreatePlane("playAgainPlane", {width:3, height:1}, scene);
-    playAgainPlane.position = new BABYLON.Vector3(0, 1.2, 6);
-    playAgainPlane.rotation.y = Math.PI;
-    playAgainPlane.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
-    playAgainPlane.isVisible = false;
-    const againGUI = BABYLON.GUI.AdvancedDynamicTexture.CreateForMesh(playAgainPlane);
-    playAgainButtonControl = BABYLON.GUI.Button.CreateSimpleButton("playAgainButton", "Play Again");
-    playAgainButtonControl.width = 1;
-    playAgainButtonControl.height = "80px";
-    playAgainButtonControl.color = "black";
-    playAgainButtonControl.fontSize = 50;
-    playAgainButtonControl.background = "white";
-    playAgainButtonControl.cornerRadius = 10;
-    playAgainButtonControl.onPointerClickObservable.add(() => {
-        // Retour à l’écran d’accueil
-        document.getElementById("renderCanvas").style.display = "none";
-        playAgainPlane.isVisible = false;
-        document.getElementById("homePage").style.display = "flex";
-    });
-    againGUI.addControl(playAgainButtonControl);
-
-    // Chargement et animation du personnage
+        // Chargement et animation du personnage
     const { mesh: character, skeleton } = await playerLoader.loadCharacter();
     window.player = character;
     const playerAnimator = new PlayerAnimator(scene, skeleton);
