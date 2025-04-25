@@ -4,36 +4,54 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BABYLON JS WORLD</title>
+
+    <!-- Feuille de style -->
     <link rel="stylesheet" href="src/css/style.css">
+
+    <!-- Icône du site -->
     <link rel="icon" href="assets/icons/favicon.ico">
+
+    <!-- Librairies BabylonJS -->
     <script src="https://cdn.babylonjs.com/babylon.js"></script>
     <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
-    <!-- Ensure GUI is loaded -->
     <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script> 
     <script src="https://cdn.babylonjs.com/proceduralTexturesLibrary/babylonjs.proceduralTextures.min.js"></script>
 </head>
+
 <body>
-    <!-- Home Page -->
+
+    <!-- Page d'accueil avec le bouton Play -->
     <div id="homePage">
         <h1>Welcome to Dreamland 2025</h1>
         <button id="playGameBtn">Play Game</button>
+
+        <!-- Instructions du jeu -->
+        <div id="instructions" style="margin-top: 20px; text-align: left; max-width: 600px; color:#333333;">
+            <h2>Fonctionnement du jeu</h2>
+            <p>Se déplacer avec W/A/S/D ou les flèches directionnelles.</p>
+            <p>S'approcher d’un cube et cliquer dessus ou appuyer sur E pour déclencher une énigme.</p>
+            <p>Répondre correctement pour colorier la chambre.</p>
+            <p>Une mauvaise réponse entraîne la défaite immédiate.</p>
+            <p>Après avoir résolu les 4 énigmes, la Terre centrale devient rose et le joueur gagne.</p>
+            <p>Utiliser le bouton "Play Again" pour recommencer une partie.</p>
+        </div>
     </div>
 
-    <!-- Loading Screen -->
+    <!-- Écran de chargement -->
     <div id="loadingScreen" style="display: none;">
         <h1>Loading...</h1>
     </div>
 
+    <!-- Canvas BabylonJS (rendu 3D) -->
     <canvas id="renderCanvas" style="display: none;"></canvas>
     
-    <!-- Top-Right Menu Overlay -->
+    <!-- Menu en haut à droite -->
     <div id="menu">
-        <!-- Ensure this button ID doesn't conflict if you keep the winning message div -->
         <button id="restartBtn">Restart Game</button> 
         <button id="unstuckBtn">Unstuck</button>
     </div>
 
-    <!-- Riddle Popup (Still Used) -->
+    <!-- Popup pour les énigmes -->
     <div id="riddlePopup" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: rgba(0, 0, 0, 0.8); color: white; padding: 20px; border-radius: 10px; z-index: 1000;">
         <h2 id="riddleQuestion"></h2>
         <input type="text" id="riddleAnswer" placeholder="Votre réponse ici..." style="color: black;">
@@ -42,18 +60,7 @@
         <button id="closePopup" style="color: white; background-color: grey; padding: 5px 10px; border: none; border-radius: 5px; cursor: pointer;">Quitter</button>
     </div>
 
-    <!-- Winning Message (Can be removed) -->
-    <!-- <div id="winningMessage" style="display: none;">
-        <h1>You Won!</h1>
-        <button id="restartGameBtn">Play Again</button> 
-    </div> -->
-
-    <!-- Game Over Message (Can be removed) -->
-    <!-- <div id="gameOverMessage" style="display: none;">
-        <h1>Game Over!</h1>
-        <button id="tryAgainBtn">Try Again</button>
-    </div> -->
-    
+    <!-- Script principal du jeu -->
     <script type="module" src="src/js/main.js"></script>
 </body>
 </html>

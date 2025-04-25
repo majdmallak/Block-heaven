@@ -4,33 +4,31 @@ import PlayerLoader from './player/PlayerLoader.js';
 import PlayerAnimator from './player/PlayerAnimator.js';
 import PlayerCamera from './camera/PlayerCamera.js';
 import InputManager from './input/InputManager.js';
-import BABYLON from './core/BabylonWrapper.js'; 
-// Ensure GUI is available (loaded in index.html or imported)
-// import * as GUI from '@babylonjs/gui'; 
+import BABYLON from './core/BabylonWrapper.js';
+// S’assurer que la GUI BabylonJS est disponible (chargée dans index.html ou importée)
+// import * as GUI from '@babylonjs/gui';
 
-// Initialize the engine
+// Initialisation du moteur de rendu
 const engine = new GameEngine('renderCanvas');
 
-// Create the game scene
+// Création de la scène de jeu
 let gameScene = new GameScene(engine.engine);
 let scene = gameScene.scene;
 
-// Input Manager
+// Configuration du gestionnaire d’entrées utilisateur
 const inputManager = new InputManager(scene);
 
-// Player loader
+// Chargement du personnage joueur
 const playerLoader = new PlayerLoader(scene);
 
-// --- Global Game State Variables ---
-let correctAnswerCount = 0;
-const totalRiddles = 4;
-let scoreTextControl = null; // For the 2D GUI TextBlock showing the score
-let playAgainButtonControl = null; // For the 2D GUI Button
-let scorePlane = null; // 3D Plane for score background
-let playAgainPlane = null; // 3D Plane for play again button background
-// --- End Global Game State Variables ---
+// --- Variables d’état global du jeu ---
+let correctAnswerCount = 0;      // Nombre de réponses correctes
+const totalRiddles = 4;          // Nombre total d’énigmes
+let scoreTextControl = null;     // Texte 2D du score
+let playAgainPlane = null;       // Plan 3D du bouton « Rejouer »
+// --- Fin des variables d’état ---
 
-// Riddle data stored for each room
+// Données des énigmes par pièce
 const riddles = {
     North: { question: "Je suis à toi, mais tout le monde l'utilise. Qui suis-je ?", answer: "ton nom" },
     South: { question: "Qu'est-ce qui a un lit mais ne dort jamais ?", answer: "une rivière" },
@@ -38,362 +36,257 @@ const riddles = {
     West:  { question: "Qu'est-ce qui monte et qui descend sans bouger ?", answer: "un escalier" }
 };
 
-// Track solved riddles
+// Suivi des énigmes déjà résolues
 const solvedRiddles = { North: false, South: false, East: false, West: false };
 
-// Function to reset the game
+// Réinitialisation complète de la partie
 function resetGame() {
-    solvedRiddles.North = false;
-    solvedRiddles.South = false;
-    solvedRiddles.East = false;
-    solvedRiddles.West = false;
+    // Remise à zéro du suivi des énigmes
+    for (const dir in solvedRiddles) {
+        solvedRiddles[dir] = false;
+    }
     correctAnswerCount = 0;
 
+    // Recentrer le joueur au point de départ
     if (window.player) {
         window.player.position = BABYLON.Vector3.Zero();
     }
 
-    changeRoomTextures("North", true);
-    changeRoomTextures("South", true);
-    changeRoomTextures("East", true);
-    changeRoomTextures("West", true);
+    // Remise à noir des textures des quatre pièces
+    ['North','South','East','West'].forEach(dir => changeRoomTextures(dir, true));
     resetMainGroundTexture();
 
-    // Reset Score Display and Hide Play Again Button
+    // Mettre à jour l’affichage du score
     if (scoreTextControl) {
         scoreTextControl.text = `Correct Answers: 0/${totalRiddles}`;
     }
-    if (playAgainPlane) { // Hide the plane containing the button
+    // Masquer le bouton « Rejouer »
+    if (playAgainPlane) {
         playAgainPlane.isVisible = false;
     }
 }
 
-// Function to reset the main ground texture
+// Réinitialise la texture du sol principal en noir
 function resetMainGroundTexture() {
     const mainGround = scene.getMeshByName("Cube.020");
-    if (mainGround) {
-        let blackMaterial = scene.getMaterialByName("blackMaterial");
-        if (!blackMaterial) {
-            blackMaterial = new BABYLON.StandardMaterial("blackMaterial", scene);
-            blackMaterial.diffuseColor = new BABYLON.Color3(0, 0, 0);
-            blackMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
-        }
-        mainGround.material = blackMaterial;
+    if (!mainGround) return;
+    let blackMat = scene.getMaterialByName("blackMaterial");
+    if (!blackMat) {
+        blackMat = new BABYLON.StandardMaterial("blackMaterial", scene);
+        blackMat.diffuseColor = new BABYLON.Color3(0,0,0);
+        blackMat.specularColor = new BABYLON.Color3(0,0,0);
     }
+    mainGround.material = blackMat;
 }
 
-// Function to change the textures of the walls and ground
+// Applique une couleur ou noir aux murs et au sol d’une pièce
 function changeRoomTextures(room, forceBlack = false) {
-    let materialToApply;
+    let mat;
     if (forceBlack) {
-        let blackMaterial = scene.getMaterialByName("blackMaterial");
-        if (!blackMaterial) {
-            blackMaterial = new BABYLON.StandardMaterial("blackMaterial", scene);
-            blackMaterial.diffuseColor = new BABYLON.Color3(0, 0, 0);
-            blackMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
-        }
-        materialToApply = blackMaterial;
+        mat = scene.getMaterialByName("blackMaterial") || (() => {
+            const m = new BABYLON.StandardMaterial("blackMaterial", scene);
+            m.diffuseColor = new BABYLON.Color3(0,0,0);
+            m.specularColor = new BABYLON.Color3(0,0,0);
+            return m;
+        })();
     } else {
-        let color;
-        switch (room) {
-            case "North": color = new BABYLON.Color3(1, 0, 0); break;
-            case "South": color = new BABYLON.Color3(0, 1, 0); break;
-            case "East": color = new BABYLON.Color3(1, 0.75, 0.8); break;
-            case "West": color = new BABYLON.Color3(0, 0, 1); break;
-            default: color = new BABYLON.Color3(1, 1, 1);
-        }
-        const newMaterial = new BABYLON.StandardMaterial(room + "Material", scene);
-        newMaterial.diffuseColor = color;
-        newMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
-        materialToApply = newMaterial;
+        // Choix de la couleur selon la direction
+        const colors = {
+            North: new BABYLON.Color3(1,0,0),
+            South: new BABYLON.Color3(0,1,0),
+            East:  new BABYLON.Color3(1,0.75,0.8),
+            West:  new BABYLON.Color3(0,0,1)
+        };
+        mat = new BABYLON.StandardMaterial(room + "Mat", scene);
+        mat.diffuseColor = colors[room] || new BABYLON.Color3(1,1,1);
+        mat.specularColor = new BABYLON.Color3(0,0,0);
     }
-
-    const roomMeshes = gameScene.rooms[room];
-    if (roomMeshes) {
-        if (roomMeshes.ground) roomMeshes.ground.material = materialToApply;
-        roomMeshes.walls.forEach(wall => wall.material = materialToApply);
+    const meshes = gameScene.rooms[room];
+    if (meshes) {
+        meshes.ground.material = mat;
+        meshes.walls.forEach(w => w.material = mat);
     } else {
-        console.warn(`Could not find roomMeshes for room: ${room}`);
+        console.warn(`Pas de géométrie trouvée pour la pièce : ${room}`);
     }
 }
 
-// Function to change the texture of Cube.020 to the dreamy texture
+// Applique une texture procédurale « rêveuse » au sol principal (victoire)
 function changeMainGroundTexture() {
-    const mainGround = scene.getMeshByName("Cube.020"); 
-    if (mainGround) {
-        console.log("Applying dreamy texture to Cube.020");
-        const floorTexture = new BABYLON.CloudProceduralTexture("dreamFloorTexture", 512, scene);
-        floorTexture.skyColor = new BABYLON.Color4(0.8, 0.6, 0.9, 1.0);
-        floorTexture.cloudColor = new BABYLON.Color4(1, 0.85, 0.95, 1.0);
-        floorTexture.uScale = 5; floorTexture.vScale = 5;
-        floorTexture.anisotropicFilteringLevel = 4;
-        const floorMaterial = new BABYLON.StandardMaterial("dreamFloorMat", scene);
-        floorMaterial.diffuseTexture = floorTexture;
-        floorMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
-        mainGround.material = floorMaterial;
-        console.log("Changed texture of Cube.020 to dreamy texture");
-    } else {
-        console.warn("Main ground mesh 'Cube.020' not found for dreamy texture.");
+    const mainGround = scene.getMeshByName("Cube.020");
+    if (!mainGround) {
+        console.warn("Mesh 'Cube.020' introuvable.");
+        return;
     }
+    const procTex = new BABYLON.CloudProceduralTexture("dreamFloorTexture", 512, scene);
+    procTex.skyColor = new BABYLON.Color4(0.8,0.6,0.9,1);
+    procTex.cloudColor = new BABYLON.Color4(1,0.85,0.95,1);
+    procTex.uScale = procTex.vScale = 5;
+    procTex.anisotropicFilteringLevel = 4;
+    const mat = new BABYLON.StandardMaterial("dreamFloorMat", scene);
+    mat.diffuseTexture = procTex;
+    mat.specularColor = new BABYLON.Color3(0,0,0);
+    mainGround.material = mat;
 }
 
-// Main game logic
+// Initialisation principale du jeu (GUI, personnage, logique)
 async function initGame() {
-
-    // --- Create Score Display GUI ---
-    scorePlane = BABYLON.MeshBuilder.CreatePlane("scorePlane", {width: 4, height: 1}, scene);
-    scorePlane.position = new BABYLON.Vector3(0, 2.5, 6); // Position near spawn
-    scorePlane.rotation.y = Math.PI; // Rotate the plane 180 degrees
-    scorePlane.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL; // Always face camera
-
-    const scoreTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateForMesh(scorePlane);
-
+    // --- Affichage du score ---
+    scorePlane = BABYLON.MeshBuilder.CreatePlane("scorePlane", {width:4, height:1}, scene);
+    scorePlane.position = new BABYLON.Vector3(0, 2.5, 6);
+    scorePlane.rotation.y = Math.PI;
+    scorePlane.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
+    const scoreGUI = BABYLON.GUI.AdvancedDynamicTexture.CreateForMesh(scorePlane);
     scoreTextControl = new BABYLON.GUI.TextBlock("scoreText", `Correct Answers: 0/${totalRiddles}`);
-    scoreTextControl.color = "red"; 
-    scoreTextControl.fontSize = 85; 
+    scoreTextControl.color = "red";
+    scoreTextControl.fontSize = 85;
     scoreTextControl.background = "white";
-    scoreTextControl.paddingTop = "10px";
-    scoreTextControl.paddingBottom = "10px";
-    scoreTexture.addControl(scoreTextControl);
-    // --- End Score Display GUI ---
+    scoreGUI.addControl(scoreTextControl);
 
-    // --- Create Play Again Button GUI (Initially Hidden) ---
-    playAgainPlane = BABYLON.MeshBuilder.CreatePlane("playAgainPlane", {width: 3, height: 1}, scene);
-    playAgainPlane.position = new BABYLON.Vector3(0, 1.2, 6); // Position below score
-    playAgainPlane.rotation.y = Math.PI; // Rotate the plane 180 degrees
+    // --- Bouton « Rejouer » masqué ---
+    playAgainPlane = BABYLON.MeshBuilder.CreatePlane("playAgainPlane", {width:3, height:1}, scene);
+    playAgainPlane.position = new BABYLON.Vector3(0, 1.2, 6);
+    playAgainPlane.rotation.y = Math.PI;
     playAgainPlane.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
-    playAgainPlane.isVisible = false; // Start hidden
-
-    const playAgainTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateForMesh(playAgainPlane);
-
+    playAgainPlane.isVisible = false;
+    const againGUI = BABYLON.GUI.AdvancedDynamicTexture.CreateForMesh(playAgainPlane);
     playAgainButtonControl = BABYLON.GUI.Button.CreateSimpleButton("playAgainButton", "Play Again");
-    playAgainButtonControl.width = 1; 
-    playAgainButtonControl.height = "80px"; 
+    playAgainButtonControl.width = 1;
+    playAgainButtonControl.height = "80px";
     playAgainButtonControl.color = "black";
     playAgainButtonControl.fontSize = 50;
     playAgainButtonControl.background = "white";
     playAgainButtonControl.cornerRadius = 10;
     playAgainButtonControl.onPointerClickObservable.add(() => {
-        console.log("Play Again button clicked - Returning to home page.");
+        // Retour à l’écran d’accueil
         document.getElementById("renderCanvas").style.display = "none";
-        playAgainPlane.isVisible = false; 
-        document.getElementById("homePage").style.display = "flex"; 
+        playAgainPlane.isVisible = false;
+        document.getElementById("homePage").style.display = "flex";
     });
-    playAgainTexture.addControl(playAgainButtonControl);
-    // --- End Play Again Button GUI ---
+    againGUI.addControl(playAgainButtonControl);
 
-
-    // Load the player character
+    // Chargement et animation du personnage
     const { mesh: character, skeleton } = await playerLoader.loadCharacter();
     window.player = character;
-
-    // Initialize animations
     const playerAnimator = new PlayerAnimator(scene, skeleton);
 
-    // Initialize camera
+    // Configuration de la caméra joueur
     const playerCamera = new PlayerCamera(scene, character, engine.canvas);
     scene.activeCamera = playerCamera.camera;
 
-    // --- Player State (Movement Logic) ---
+    // --- Boucle de déplacement et animation ---
     scene.onBeforeRenderObservable.add(() => {
-        const moveSpeed = 0.1;
-        const rotateSpeed = 0.02;
-        let moving = false;
-        let rotating = false; 
-        let animationToPlay = 'idle'; 
-
-        const forwardPressed = inputManager.isKeyPressed('w');
-        const backwardPressed = inputManager.isKeyPressed('s');
-        const leftPressed = inputManager.isKeyPressed('a'); 
-        const rightPressed = inputManager.isKeyPressed('d'); 
-
-        let moveDirection = new BABYLON.Vector3(0, 0, 0);
-
-        if (leftPressed) { character.rotation.y -= rotateSpeed; rotating = true; }
-        if (rightPressed) { character.rotation.y += rotateSpeed; rotating = true; }
-
-        const forward = new BABYLON.Vector3( Math.sin(character.rotation.y), 0, Math.cos(character.rotation.y) );
-
-        if (forwardPressed) { moveDirection.addInPlace(forward); animationToPlay = 'walking'; moving = true; } 
-        else if (backwardPressed) { moveDirection.subtractInPlace(forward); animationToPlay = 'walking_back'; moving = true; }
-
-        if (moving) { moveDirection.normalize().scaleInPlace(moveSpeed); }
-        character.moveWithCollisions(moveDirection);
-
-        if (rotating && !moving) animationToPlay = 'idle';
-        if (!moving && !rotating) animationToPlay = 'idle';
-        playerAnimator.setAnimation(animationToPlay); 
+        const moveSpeed = 0.1, rotSpeed = 0.02;
+        let moving = false, rotating = false;
+        let anim = 'idle';
+        if (inputManager.isKeyPressed('a')) { character.rotation.y -= rotSpeed; rotating = true; }
+        if (inputManager.isKeyPressed('d')) { character.rotation.y += rotSpeed; rotating = true; }
+        const forward = new BABYLON.Vector3(Math.sin(character.rotation.y),0,Math.cos(character.rotation.y));
+        let dir = new BABYLON.Vector3(0,0,0);
+        if (inputManager.isKeyPressed('w')) { dir.addInPlace(forward); anim = 'walking'; moving = true; }
+        else if (inputManager.isKeyPressed('s')) { dir.subtractInPlace(forward); anim = 'walking_back'; moving = true; }
+        if (moving) dir.normalize().scaleInPlace(moveSpeed);
+        character.moveWithCollisions(dir);
+        if (!moving && !rotating) anim = 'idle';
+        playerAnimator.setAnimation(anim);
     });
 
-    // Add event listener for the "Restart Game" button (Top Menu)
-    const restartBtn = document.getElementById("restartBtn");
-    if (restartBtn) {
-        restartBtn.addEventListener("click", () => {
-            console.log("Restarting game (Top Menu)...");
-            document.getElementById("renderCanvas").style.display = "none";
-            if (playAgainPlane) playAgainPlane.isVisible = false; // Hide button plane
-            document.getElementById("homePage").style.display = "flex";
-        });
-    }
-
-    // Add event listener for the "Unstuck" button
-    const unstuckBtn = document.getElementById("unstuckBtn");
-    if (unstuckBtn) {
-        unstuckBtn.addEventListener("click", () => {
-            if (window.player) {
-                window.player.position = BABYLON.Vector3.Zero();
-                console.log("Player position reset via Unstuck button");
-            }
-        });
-    }
-
-    // Create riddle cubes
-    function createRiddleCube(side, position) {
-        const cube = BABYLON.MeshBuilder.CreateBox(side + "Cube", { size: 3 }, scene);
-        cube.position = new BABYLON.Vector3(position.x, 1.5, position.y);
+    // Création des cubes d’énigmes
+    function createRiddleCube(side, pos) {
+        const cube = BABYLON.MeshBuilder.CreateBox(side+"Cube",{size:3},scene);
+        cube.position = new BABYLON.Vector3(pos.x,1.5,pos.y);
         cube.metadata = { room: side };
-        const mat = new BABYLON.StandardMaterial(side + "Mat", scene);
-        switch (side) {
-            case "North": mat.diffuseColor = new BABYLON.Color3(1, 0, 0); break;
-            case "South": mat.diffuseColor = new BABYLON.Color3(0, 1, 0); break;
-            case "East": mat.diffuseColor = new BABYLON.Color3(1, 0.75, 0.8); break;
-            case "West": mat.diffuseColor = new BABYLON.Color3(0, 0, 1); break;
-            default: mat.diffuseColor = new BABYLON.Color3(1, 1, 1);
-        }
-        mat.specularColor = new BABYLON.Color3(0, 0, 0);
+        const mat = new BABYLON.StandardMaterial(side+"Mat",scene);
+        const cols = { North:[1,0,0], South:[0,1,0], East:[1,0.75,0.8], West:[0,0,1] };
+        mat.diffuseColor = new BABYLON.Color3(...(cols[side]||[1,1,1]));
+        mat.specularColor = new BABYLON.Color3(0,0,0);
         cube.material = mat;
         return cube;
     }
+    const cubes = [
+        createRiddleCube("North",{x:-0.9,y:-78}),
+        createRiddleCube("South",{x:-0.5,y:85}),
+        createRiddleCube("East", {x:-84,y:1.5}),
+        createRiddleCube("West", {x:68,y:-0.2}),
+    ];
 
-    const northCube = createRiddleCube("North", { x: -0.9, y: -78 });
-    const southCube = createRiddleCube("South", { x: -0.5, y: 85 });
-    const eastCube  = createRiddleCube("East",  { x: -84, y: 1.5 });
-    const westCube  = createRiddleCube("West",  { x: 68, y: -0.2 });
-
-    let riddlePopup;
-
-    // Function to show the riddle popup for a given room
+    // Gestion des popups d’énigmes
+    let riddlePopup = false;
     function showRiddlePopup(room) {
-        if (solvedRiddles[room]) {
-            console.log(`Riddle for ${room} already solved.`);
-            // Optionally briefly show score or do nothing
-            return; 
-        }
-        if (riddlePopup) return; 
-
+        if (solvedRiddles[room] || riddlePopup) return;
         riddlePopup = true;
-
         const popup = document.getElementById("riddlePopup");
-        const questionText = document.getElementById("riddleQuestion");
+        document.getElementById("riddleQuestion").textContent = riddles[room].question;
         const answerInput = document.getElementById("riddleAnswer");
-        const submitButton = document.getElementById("submitAnswer");
-        const feedbackText = document.getElementById("feedbackText");
-        const closeButton = document.getElementById("closePopup");
-
-        questionText.textContent = riddles[room].question;
+        const feedback = document.getElementById("feedbackText");
         answerInput.value = "";
-        feedbackText.textContent = "";
+        feedback.textContent = "";
         popup.style.display = "block";
 
-        const submitHandler = () => {
-            const userAnswer = answerInput.value.trim().toLowerCase();
-            const correctAnswer = riddles[room].answer.toLowerCase();
-            
-            if (userAnswer === correctAnswer) {
-                feedbackText.textContent = "Correct!";
-                feedbackText.style.color = "green";
-                if (!solvedRiddles[room]) { // Only increment if not already solved
-                    solvedRiddles[room] = true;
-                    correctAnswerCount++;
-                    changeRoomTextures(room); 
-                }
+        const onSubmit = () => {
+            const ans = answerInput.value.trim().toLowerCase();
+            if (ans === riddles[room].answer) {
+                feedback.textContent = "Correct !";
+                feedback.style.color = "green";
+                solvedRiddles[room] = true;
+                correctAnswerCount++;
+                changeRoomTextures(room);
             } else {
-                feedbackText.textContent = "Faux, réessayez.";
-                feedbackText.style.color = "red";
-                // No game over state here, just update score display
+                feedback.textContent = "Faux, réessayez.";
+                feedback.style.color = "red";
             }
-
-            // Update Score Display
-            if (scoreTextControl) {
-                scoreTextControl.text = `Correct Answers: ${correctAnswerCount}/${totalRiddles}`;
-            }
-
-            // Check for Win Condition
+            scoreTextControl.text = `Correct Answers: ${correctAnswerCount}/${totalRiddles}`;
             if (correctAnswerCount === totalRiddles) {
-                changeMainGroundTexture(); // Change main ground on win
-                if (playAgainPlane) {
-                    playAgainPlane.isVisible = true; // Show "Play Again" button
-                }
+                changeMainGroundTexture();
+                playAgainPlane.isVisible = true;
             }
-
-            // Close the popup after a short delay
             setTimeout(() => {
                 popup.style.display = "none";
-                riddlePopup = null; 
-            }, 1000); 
-
-            // Remove listener after use
-            submitButton.removeEventListener('click', submitHandler);
-            closeButton.removeEventListener('click', closeHandler);
+                riddlePopup = false;
+            }, 1000);
+            document.getElementById("submitAnswer").removeEventListener('click', onSubmit);
         };
 
-        const closeHandler = () => {
+        document.getElementById("submitAnswer").addEventListener('click', onSubmit);
+        document.getElementById("closePopup").addEventListener('click', () => {
             popup.style.display = "none";
-            riddlePopup = null;
-            submitButton.removeEventListener('click', submitHandler);
-            closeButton.removeEventListener('click', closeHandler);
-        };
-
-        submitButton.addEventListener('click', submitHandler);
-        closeButton.addEventListener('click', closeHandler);
+            riddlePopup = false;
+            document.getElementById("submitAnswer").removeEventListener('click', onSubmit);
+        });
     }
 
-    // Interaction logic (Pointer pick and 'E' key)
-    scene.onPointerObservable.add((pointerInfo) => {
-        if (pointerInfo.type === BABYLON.PointerEventTypes.POINTERPICK) {
-            const pickedMesh = pointerInfo.pickInfo.pickedMesh;
-            if (pickedMesh && pickedMesh.metadata && pickedMesh.metadata.room) {
-                showRiddlePopup(pickedMesh.metadata.room);
-            }
+    // Interaction souris et touche E pour déclencher l’énigme
+    scene.onPointerObservable.add(pi => {
+        if (pi.type === BABYLON.PointerEventTypes.POINTERPICK && pi.pickInfo.pickedMesh?.metadata?.room) {
+            showRiddlePopup(pi.pickInfo.pickedMesh.metadata.room);
         }
     });
-
     scene.onBeforeRenderObservable.add(() => {
-        const interactionDistance = 5;
-        const cubes = [northCube, southCube, eastCube, westCube];
-        cubes.forEach(cube => {
-            if (window.player && BABYLON.Vector3.Distance(window.player.position, cube.position) < interactionDistance) {
-                if (inputManager.isKeyPressed('e')) {
-                    showRiddlePopup(cube.metadata.room);
-                }
+        cubes.forEach(c => {
+            if (window.player && BABYLON.Vector3.Distance(window.player.position, c.position) < 5
+                && inputManager.isKeyPressed('e')) {
+                showRiddlePopup(c.metadata.room);
             }
         });
     });
 
-    // Start the render loop
+    // Lancement de la boucle de rendu
     engine.startRenderLoop(scene);
 }
 
-// Function to start the game
+// Démarrage du jeu depuis la page d’accueil
 async function startGame() {
     document.getElementById("homePage").style.display = "none";
     document.getElementById("loadingScreen").style.display = "flex";
     document.getElementById("renderCanvas").style.display = "none";
 
-    await gameScene.loadWorld(); 
-    resetGame(); // Reset state BEFORE initializing GUI etc.
-    await initGame(); // Initialize game (creates GUI elements)
+    await gameScene.loadWorld();
+    resetGame();
+    await initGame();
 
     document.getElementById("loadingScreen").style.display = "none";
     document.getElementById("renderCanvas").style.display = "block";
-    engine.engine.resize(); 
+    engine.engine.resize();
 }
 
-// Add event listener for the "Play Game" button
+// Événement clic sur le bouton « Play Game »
 document.getElementById("playGameBtn").addEventListener("click", startGame);
-
-// Remove or comment out listeners for old HTML overlay buttons if they are removed
-// const htmlRestartGameBtn = document.getElementById("restartGameBtn"); 
-// if (htmlRestartGameBtn) { ... }
-// const htmlTryAgainBtn = document.getElementById("tryAgainBtn"); 
-// if (htmlTryAgainBtn) { ... }
